@@ -1,56 +1,29 @@
-import java.lang.Exception
-import javax.naming.directory.InvalidAttributesException
-
 class IsbnVerifier {
-    private fun simplifyIsbn(isbn: String): String {
-        var simplifiedisbn: String = ""
-        var checksum: Boolean = false
-
-        for (char in isbn) {
-            if (char == '-') {
-                continue
-            }
-            if (!checksum) {
-                if (!char.isDigit()) {
-                    throw InvalidAttributesException()
-                }
-            } else if (!char.isDigit() && char.toUpperCase() != 'X') {
-                throw InvalidAttributesException()
-            }
-            simplifiedisbn += char
-            if (simplifiedisbn.length == 9) {
-                checksum = true
-            }
-        }
-        if (simplifiedisbn.length != 10) {
-            throw InvalidAttributesException()
-        }
-        return simplifiedisbn
-    }
-
-    private fun numberify(char: Char): Int {
-        if (char.toUpperCase() == 'X') {
-            return 10
-        } else {
-            return char.toInt() - '0'.toInt()
-        }
-    }
-
-    fun isValid(isbn: String): Boolean {
+    fun isValid(isbnString: String): Boolean =
         try {
-            val simplifiedisbn = simplifyIsbn(isbn)
-            var weightedSum = 0
-            for (charIndex in simplifiedisbn.indices) {
-                weightedSum += (10 - charIndex) * numberify(simplifiedisbn[charIndex])
-            }
-            if (weightedSum % 11 == 0) {
-                return true
-            } else {
-                return false
-            }
+            val isbnAsIntList: List<Int> = isbnToList(isbnString)
+            if (isbnAsIntList.size != 10 ||
+                isbnAsIntList.dropLast(1).contains(10)
+            )
+                throw IllegalArgumentException()
+
+            val weightedSum = isbnAsIntList.foldIndexed(0) { index, acc, i -> acc + (10 - index) * i }
+            weightedSum % 11 == 0
+        } catch (e: IllegalArgumentException) {
+            false
         }
-        catch (InvalidAttributeException: Exception) {
-            return false
-        }
+
+    companion object {
+        private fun Char.numberify(): Int =
+            when {
+                this in '0'..'9' -> this.toInt() - '0'.toInt()
+                this.toUpperCase() == 'X' -> 10
+                else -> throw IllegalArgumentException()
+            }
     }
+
+    private fun isbnToList(isbnString: String): List<Int> = isbnString.filter { it != '-' }
+        .map { it.numberify() }
+
 }
+
